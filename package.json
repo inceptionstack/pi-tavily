@@ -5,7 +5,7 @@
   "type": "module",
   "keywords": ["pi-package"],
   "pi": {
-    "extensions": ["./src/index.ts"]
+    "extensions": ["./index.ts"]
   },
   "peerDependencies": {
     "@mariozechner/pi-ai": "*",
