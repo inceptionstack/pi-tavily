@@ -18,6 +18,11 @@ interface TavilyResponse {
   response_time: string;
 }
 
+/** Single-quote escape a string for safe use in sh -c '...' */
+function shellEscape(s: string): string {
+  return "'" + s.replace(/'/g, "'\\''" ) + "'";
+}
+
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "search_web",
@@ -52,19 +57,6 @@ export default function (pi: ExtensionAPI) {
     }),
 
     async execute(_toolCallId, params, signal, onUpdate) {
-      // Check process.env first, then fall back to reading from shell
-      // (psst secrets may only be injected into shell subprocesses)
-      let apiKey = process.env.TAVILY_API_KEY;
-      if (!apiKey) {
-        const result = await pi.exec("sh", ["-c", "echo $TAVILY_API_KEY"], { signal, timeout: 5000 });
-        apiKey = result.stdout.trim();
-      }
-      if (!apiKey) {
-        throw new Error(
-          "TAVILY_API_KEY environment variable is not set. Get one at https://tavily.com/"
-        );
-      }
-
       onUpdate?.({
         content: [{ type: "text", text: `Searching: ${params.query}` }],
       });
@@ -76,24 +68,59 @@ export default function (pi: ExtensionAPI) {
         include_answer: params.include_answer ?? true,
       };
 
-      const response = await fetch("https://api.tavily.com/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(body),
-        signal,
-      });
+      const jsonBody = JSON.stringify(body);
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
+      // Build the curl command — uses $TAVILY_API_KEY which will be in the env
+      const curlCmd = `curl -s -f -X POST "https://api.tavily.com/search" `
+        + `-H "Content-Type: application/json" `
+        + `-H "Authorization: Bearer $TAVILY_API_KEY" `
+        + `-d ${shellEscape(jsonBody)}`;
+
+      // Try psst first (secret never enters agent context), fall back to env var
+      let cmd: string;
+      let psstFlag = "";
+      const hasPsst = await (async () => {
+        try {
+          const which = await pi.exec("sh", ["-c", "command -v psst"], { signal, timeout: 3000 });
+          if (which.exitCode !== 0) return false;
+          // Check local vault first, then global
+          const local = await pi.exec("sh", ["-c", "psst list --json --quiet 2>/dev/null"], { signal, timeout: 5000 });
+          if (local.stdout.includes("TAVILY_API_KEY")) return true;
+          const global = await pi.exec("sh", ["-c", "psst --global list --json --quiet 2>/dev/null"], { signal, timeout: 5000 });
+          if (global.stdout.includes("TAVILY_API_KEY")) { psstFlag = "--global "; return true; }
+          return false;
+        } catch { return false; }
+      })();
+
+      if (hasPsst) {
+        cmd = `psst ${psstFlag}TAVILY_API_KEY -- sh -c ${shellEscape(curlCmd)}`;
+      } else if (process.env.TAVILY_API_KEY) {
+        cmd = curlCmd;
+      } else {
+        // Last resort: check if the shell environment has it (e.g. pi injects psst secrets)
+        const envCheck = await pi.exec("sh", ["-c", "echo $TAVILY_API_KEY"], { signal, timeout: 5000 });
+        if (!envCheck.stdout.trim()) {
+          throw new Error(
+            "TAVILY_API_KEY not found. Install psst (npm i -g psst-cli) and run `psst set TAVILY_API_KEY`, or set the environment variable. Get a key at https://tavily.com/"
+          );
+        }
+        cmd = curlCmd;
+      }
+
+      const result = await pi.exec("sh", ["-c", cmd], { signal, timeout: 30000 });
+
+      if (result.exitCode !== 0) {
         throw new Error(
-          `Tavily API error (${response.status}): ${errorText || response.statusText}`
+          `Tavily API request failed (exit ${result.exitCode}): ${result.stderr || result.stdout}`
         );
       }
 
-      const data = (await response.json()) as TavilyResponse;
+      let data: TavilyResponse;
+      try {
+        data = JSON.parse(result.stdout) as TavilyResponse;
+      } catch {
+        throw new Error(`Failed to parse Tavily response: ${result.stdout.slice(0, 500)}`);
+      }
 
       // Format results for the LLM
       let output = "";

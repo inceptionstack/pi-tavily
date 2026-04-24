@@ -5,10 +5,29 @@ A [pi](https://github.com/badlogic/pi-mono) extension that adds a `web_search` t
 ## Setup
 
 1. Get a Tavily API key from [tavily.com](https://tavily.com/)
-2. Set the `TAVILY_API_KEY` environment variable:
-   ```bash
-   export TAVILY_API_KEY=tvly-YOUR_API_KEY
-   ```
+2. Provide the key via **one** of these methods (checked in order):
+
+### Option A: psst (recommended)
+
+If [psst](https://github.com/Michaelliv/psst) is installed, the extension will automatically use it. The secret never enters the agent's context.
+
+```bash
+npm install -g psst-cli
+psst init
+psst set TAVILY_API_KEY
+```
+
+### Option B: Environment variable
+
+```bash
+export TAVILY_API_KEY=tvly-YOUR_API_KEY
+```
+
+### Resolution order
+
+1. **psst vault** — if `psst` CLI is available and `TAVILY_API_KEY` is in the vault, the request is executed via `psst TAVILY_API_KEY -- curl ...` so the key is never exposed to the agent.
+2. **`process.env.TAVILY_API_KEY`** — direct environment variable.
+3. **Shell environment** — falls back to checking the shell (covers pi's own psst secret injection).
 
 ## Installation
 
