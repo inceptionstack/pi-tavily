@@ -52,7 +52,13 @@ export default function (pi: ExtensionAPI) {
     }),
 
     async execute(_toolCallId, params, signal, onUpdate) {
-      const apiKey = process.env.TAVILY_API_KEY;
+      // Check process.env first, then fall back to reading from shell
+      // (psst secrets may only be injected into shell subprocesses)
+      let apiKey = process.env.TAVILY_API_KEY;
+      if (!apiKey) {
+        const result = await pi.exec("sh", ["-c", "echo $TAVILY_API_KEY"], { signal, timeout: 5000 });
+        apiKey = result.stdout.trim();
+      }
       if (!apiKey) {
         throw new Error(
           "TAVILY_API_KEY environment variable is not set. Get one at https://tavily.com/"
