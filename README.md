@@ -30,7 +30,7 @@ Copy or symlink to `~/.pi/agent/extensions/pi-tavily/`.
 
 ## Usage
 
-Once loaded, the LLM can call the `web_search` tool to search the web for current information.
+Once loaded, the LLM can call the `tavily_search` tool to search the web for current information.
 
 ### Parameters
 
@@ -47,7 +47,7 @@ Once loaded, the LLM can call the `web_search` tool to search the web for curren
 Search the web for the latest news about TypeScript 6.0
 ```
 
-The LLM will call `web_search` with an appropriate query and incorporate the results into its response.
+The LLM will call `tavily_search` with an appropriate query and incorporate the results into its response.
 
 ## License
 
