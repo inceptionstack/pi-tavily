@@ -20,15 +20,15 @@ interface TavilyResponse {
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
-    name: "tavily_search",
-    label: "Tavily Search",
+    name: "tavily_web_search",
+    label: "Tavily Web Search",
     description:
       "Search the web using the Tavily API. Returns relevant search results with titles, URLs, and content snippets. Useful for finding current information, recent events, documentation, or any web-based knowledge.",
     promptSnippet: "Search the web for current information via Tavily",
     promptGuidelines: [
-      "Use tavily_search when the user asks about current events, recent information, or anything that may not be in training data.",
-      "Use tavily_search to look up documentation, APIs, or technical references that may have changed.",
-      "Prefer tavily_search with search_depth 'basic' for simple factual queries, and 'advanced' for complex research.",
+      "Use tavily_web_search when the user asks about current events, recent information, or anything that may not be in training data.",
+      "Use tavily_web_search to look up documentation, APIs, or technical references that may have changed.",
+      "Prefer tavily_web_search with search_depth 'basic' for simple factual queries, and 'advanced' for complex research.",
     ],
     parameters: Type.Object({
       query: Type.String({ description: "The search query to execute" }),
