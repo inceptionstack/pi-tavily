@@ -1,0 +1,16 @@
+{
+  "name": "pi-tavily",
+  "version": "1.0.0",
+  "description": "Pi extension for web search using the Tavily API",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "typebox": "*"
+  },
+  "license": "MIT"
+}
