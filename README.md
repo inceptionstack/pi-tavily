@@ -31,10 +31,17 @@ export TAVILY_API_KEY=tvly-YOUR_API_KEY
 
 ## Installation
 
-### As a pi package
+### Direct Github install _(recommended)_:
 
 ```bash
-pi install /path/to/pi-tavily
+pi install git:github.com/inceptionstack/pi-tavily
+```
+
+### Or from a local checkout:
+
+```bash
+git clone https://github.com/inceptionstack/pi-tavily.git
+pi install ./pi-tavily
 ```
 
 ### Quick test
